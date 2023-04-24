@@ -10,6 +10,6 @@ entries:
     name: stable-diffusion
     type: application
     urls:
-    - https://github.com/victorgu-github/eks-gpu-sharing-scaling-tf/stable-diffusion-1.0.0.tgz
+    - https://victorgu-github.github.io/eks-gpu-sharing-scaling-tf/stable-diffusion-1.0.0.tgz
     version: 1.0.0
 generated: "2023-04-24T15:24:05.030780616Z"
