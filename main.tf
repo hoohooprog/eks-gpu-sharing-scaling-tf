@@ -1,51 +1,15 @@
-data "aws_ami" "eks_node" {
-  most_recent = true
-  owners      = ["amazon"]
 
-  filter {
-    name   = "name"
-    values = ["amazon-eks-node-${var.eks_version}*"]
-  }
-  filter {
-    name   = "architecture"
-    values = ["x86_64"]
-  }
-}
-
-data "aws_ami" "eks_node_gpu" {
-  most_recent = true
-  owners      = ["amazon"]
-
-  filter {
-    name   = "name"
-    values = ["amazon-eks-gpu-node-${var.eks_version}*"]
-  }
-  filter {
-    name   = "architecture"
-    values = ["x86_64"]
-  }
-}
-
-data "aws_partition" "current" {}
-data "aws_caller_identity" "current" {}
-
-# ################################################################################
-# # Auto Generated application reference number
-# ################################################################################
-
-resource "random_string" "app_ref" {
-  length  = 5
-  special = false
-  lower   = true
-  number  = false
-  upper   = false
-}
 
 locals {
-  app_ref      = resource.random_string.app_ref.result
-  cluster_name = join("-", compact(["${var.project_name}", "${var.environment}", "eks", local.app_ref]))
+  region       = var.region
+  cluster_name = var.cluster_name
+  azs                        = slice(data.aws_availability_zones.available.names, 0, 3)
   partition    = data.aws_partition.current.partition
-  vpc_name     = "${var.vpc_name}-${var.environment}"
+  vpc_name     = var.vpc_name
+
+  tags = {
+    GithubRepo = "github.com/awslabs/data-on-eks"
+  }
 }
 
 ################################################################################
@@ -107,7 +71,7 @@ module "eks" {
   # so that Karpetner can be deployed and start managing compute capacity as required
   eks_managed_node_groups = {
     karpenter = {
-      instance_types = ["t3.medium"]
+      instance_types = ["m5.xlarge"]
       # We don't need the node security group since we are using the
       # cluster-created security group, which Karpenter will also use
       create_security_group                 = false
@@ -165,31 +129,6 @@ module "karpenter_irsa" {
   }
 }
 
-provider "helm" {
-  kubernetes {
-    host                   = module.eks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-
-    exec {
-      api_version = "client.authentication.k8s.io/v1beta1"
-      command     = "aws"
-      args        = ["eks", "get-token", "--cluster-name", local.cluster_name]
-    }
-  }
-}
-
-provider "kubectl" {
-  apply_retry_count      = 5
-  host                   = module.eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-  load_config_file       = false
-
-  exec {
-    api_version = "client.authentication.k8s.io/v1alpha1"
-    command     = "aws"
-    args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_id]
-  }
-}
 
 resource "helm_release" "karpenter" {
   namespace        = "karpenter"
@@ -231,6 +170,7 @@ resource "kubectl_manifest" "karpenter_provisioner" {
     ttlSecondsAfterEmpty: 300
     labels:
       jina.ai/node-type: standard
+      nvidia.com/gpu.present: true
     requirements:
       - key: karpenter.sh/capacity-type
         operator: In
@@ -267,6 +207,7 @@ resource "kubectl_manifest" "karpenter_provisioner_gpu_shared" {
       jina.ai/node-type: gpu-shared
       jina.ai/gpu-type: nvidia
       nvidia.com/device-plugin.config: shared_gpu
+      nvidia.com/gpu.present: true
     requirements:
       - key: node.kubernetes.io/instance-type
         operator: In
@@ -308,6 +249,7 @@ resource "kubectl_manifest" "karpenter_provisioner_gpu" {
     labels:
       jina.ai/node-type: gpu
       jina.ai/gpu-type: nvidia
+      nvidia.com/gpu.present: true
     requirements:
       - key: node.kubernetes.io/instance-type
         operator: In
@@ -482,135 +424,3 @@ resource "aws_launch_template" "gpu_shared" {
   }
 }
 
-################################################################################
-# Supporting Resources
-################################################################################
-
-module "vpc" {
-  source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 3.0"
-
-  name = local.vpc_name
-  cidr = var.cidr
-
-  azs             = var.azs
-  private_subnets = var.private_subnets
-  public_subnets  = var.public_subnets
-
-  enable_vpn_gateway = false
-
-  manage_default_network_acl = true
-  default_network_acl_tags   = { Name = "${local.vpc_name}-default" }
-
-  manage_default_route_table = true
-  default_route_table_tags   = { Name = "${local.vpc_name}-default" }
-
-  manage_default_security_group = true
-  default_security_group_tags   = { Name = "${local.vpc_name}-default" }
-
-  enable_dns_support = true
-
-  enable_nat_gateway   = true
-  single_nat_gateway   = true
-  enable_dns_hostnames = true
-
-  public_subnet_tags = {
-    "kubernetes.io/cluster/${local.cluster_name}" = "shared"
-    "kubernetes.io/role/elb"                      = 1
-  }
-
-  private_subnet_tags = {
-    "kubernetes.io/cluster/${local.cluster_name}" = "shared"
-    "kubernetes.io/role/internal-elb"             = 1
-    # Tags subnets for Karpenter auto-discovery
-    "karpenter.sh/discovery" = local.cluster_name
-  }
-
-  tags = var.tags
-}
-
-module "vpc_endpoints" {
-  source  = "terraform-aws-modules/vpc/aws//modules/vpc-endpoints"
-  version = "~> 3.0"
-
-  vpc_id             = module.vpc.vpc_id
-  security_group_ids = [module.vpc_endpoint_security_group.security_group_id]
-
-  endpoints = {
-    ssm = {
-      service             = "ssm"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
-    },
-    ssmmessages = {
-      service             = "ssmmessages"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
-    },
-    lambda = {
-      service             = "lambda"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
-    },
-    ecs = {
-      service             = "ecs"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
-    },
-    ecs_telemetry = {
-      create              = false
-      service             = "ecs-telemetry"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
-    },
-    ec2 = {
-      service             = "ec2"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
-    },
-    ec2messages = {
-      service             = "ec2messages"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
-    },
-    ecr_api = {
-      service             = "ecr.api"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
-    },
-    ecr_dkr = {
-      service             = "ecr.dkr"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
-    },
-    monitoring = {
-      service             = "monitoring"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
-    },
-    s3 = {
-      service         = "s3"
-      service_type    = "Gateway"
-      route_table_ids = module.vpc.private_route_table_ids
-    }
-  }
-
-  tags = var.tags
-}
-
-module "vpc_endpoint_security_group" {
-  source  = "terraform-aws-modules/security-group/aws"
-  version = "~> 4.0"
-
-  name        = join("-", compact(["${local.vpc_name}-k8s-endpoints"]))
-  description = "Security group for VPC endpoints"
-  vpc_id      = module.vpc.vpc_id
-
-  ingress_cidr_blocks = [var.cidr]
-  ingress_rules       = ["https-443-tcp"]
-
-  egress_cidr_blocks = ["0.0.0.0/0"]
-  egress_rules       = ["https-443-tcp"]
-
-  tags = var.tags
-}
