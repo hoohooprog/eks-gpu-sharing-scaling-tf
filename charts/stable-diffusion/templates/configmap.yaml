@@ -4,4 +4,3 @@ metadata:
   name: {{ include "stable-diffusion.fullname" . }}-config
 data:
   CLI_FLAGS: {{ .Values.cliFlags | quote }}
-

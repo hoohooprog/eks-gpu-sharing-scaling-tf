@@ -19,9 +19,9 @@ variable "eks_version" {
 variable "tags" {
   description = "Tags for AWS Resource"
   type        = map(string)
-  default     = {
-    Terraform   = "true"
-    Environment = "dev"}
+  default = {
+    Terraform = "true"
+  Environment = "dev" }
 
 }
 

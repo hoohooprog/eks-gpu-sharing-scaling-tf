@@ -63,7 +63,7 @@ module "eks_blueprints_kubernetes_addons" {
       preserve = true
     }
   }
-  
+
   #---------------------------------------
   # AWS for FluentBit - DaemonSet
   #---------------------------------------
@@ -82,7 +82,7 @@ module "eks_blueprints_kubernetes_addons" {
     version = "1.4.7"
     timeout = "300"
   }
-  
+
   #---------------------------------------
   # Amazon Managed Prometheus
   #---------------------------------------
@@ -102,7 +102,7 @@ module "eks_blueprints_kubernetes_addons" {
     timeout    = "300"
     values     = [templatefile("${path.module}/helm-values/prometheus-values.yaml", {})]
   }
-  
+
 
   tags = local.tags
 }
@@ -275,5 +275,3 @@ resource "aws_launch_template" "gpu" {
     "node-type"              = "gpu"
   }
 }
-
-

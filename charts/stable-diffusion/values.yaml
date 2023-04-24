@@ -95,10 +95,10 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
-nodeSelector: 
+nodeSelector:
   nvidia.com/gpu.present: "true"
 
-tolerations: 
+tolerations:
 - key: nvidia.com/gpu
   operator: Exists
   effect: NoSchedule
