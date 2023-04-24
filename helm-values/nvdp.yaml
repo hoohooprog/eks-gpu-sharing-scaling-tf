@@ -38,22 +38,6 @@ config:
           resources:
           - name: nvidia.com/gpu
             replicas: 10
-    shared_gpu: |-
-      version: v1
-      flags:
-        migStrategy: "none"
-        failOnInitError: true
-        nvidiaDriverRoot: "/"
-        plugin:
-          passDeviceSpecs: false
-          deviceListStrategy: ["envvar"]
-          deviceIDStrategy: "uuid"
-      sharing:
-        timeSlicing:
-          renameByDefault: false
-          resources:
-          - name: nvidia.com/gpu
-            replicas: 10
   # Default config name within the ConfigMap
   default: ""
   # List of fallback strategies to attempt if no config is selected and no default is provided
