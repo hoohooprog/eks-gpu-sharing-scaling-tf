@@ -194,9 +194,9 @@ resource "kubectl_manifest" "karpenter_provisioner_gpu" {
   spec:
     ttlSecondsAfterEmpty: 300
     labels:
-      jina.ai/node-type: gpu
-      jina.ai/gpu-type: nvidia
-      nvidia.com/gpu.present: true
+      eks/node-type: gpu
+      eks/gpu-type: nvidia
+      nvidia.com/gpu.present: "true"
     requirements:
       - key: node.kubernetes.io/instance-type
         operator: In
@@ -248,7 +248,7 @@ resource "aws_launch_template" "gpu" {
 
     tags = {
       "karpenter.sh/discovery" = local.cluster_name
-      "jina.ai/node-type"      = "gpu"
+      "eks/node-type"      = "gpu"
     }
   }
 
@@ -274,4 +274,19 @@ resource "aws_launch_template" "gpu" {
     "karpenter.sh/discovery" = local.cluster_name
     "node-type"              = "gpu"
   }
+}
+
+
+#---------------------------------------
+# stable-diffusion helm chart install
+#---------------------------------------
+
+resource "helm_release" "stable-diffusion" {
+  namespace        = "stable-diffusion"
+  create_namespace = true
+
+  name       = "stable-diffusion"
+  repository = "https://victorgu-github.github.io/eks-gpu-sharing-scaling-tf"
+  chart      = "stable-diffusion"
+  version    = "v1.0.0"
 }

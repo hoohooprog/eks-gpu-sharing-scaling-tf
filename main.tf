@@ -5,7 +5,6 @@ locals {
   cluster_name = var.cluster_name
   azs          = slice(data.aws_availability_zones.available.names, 0, 3)
   partition    = data.aws_partition.current.partition
-  vpc_name     = var.vpc_name
 
   tags = {
     GithubRepo = "github.com/awslabs/data-on-eks"

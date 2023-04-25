@@ -34,7 +34,7 @@ config:
           deviceIDStrategy: "uuid"
       sharing:
         timeSlicing:
-          renameByDefault: true
+          renameByDefault: false
           resources:
           - name: nvidia.com/gpu
             replicas: 10
@@ -76,7 +76,7 @@ securityContext: {}
 
 resources: {}
 nodeSelector:
-  jina.ai/gpu-type: nvidia
+  eks/gpu-type: nvidia
 affinity: {}
 tolerations:
   # This toleration is deprecated. Kept here for backward compatibility

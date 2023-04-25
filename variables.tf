@@ -1,13 +1,13 @@
 variable "region" {
   description = "Region of the AWS resources"
   type        = string
-  default     = "us-east-2"
+  default     = "us-west-2"
 }
 
 variable "cluster_name" {
   description = "Project Name of the AWS Resources"
   type        = string
-  default     = "gpu-share-dev-eks-xyhdb"
+  default     = "eks-gpu-share-gai"
 }
 
 variable "eks_version" {
@@ -23,12 +23,6 @@ variable "tags" {
     Terraform = "true"
   Environment = "dev" }
 
-}
-
-variable "vpc_name" {
-  description = "Name to be used on all the resources as identifier"
-  type        = string
-  default     = "gpu-share-dev"
 }
 
 variable "cidr" {

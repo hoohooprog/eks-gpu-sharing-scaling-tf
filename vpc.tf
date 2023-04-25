@@ -4,7 +4,7 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 3.0"
 
-  name = local.vpc_name
+  name = local.cluster_name
   cidr = var.cidr
 
   azs             = local.azs
@@ -14,13 +14,13 @@ module "vpc" {
   enable_vpn_gateway = false
 
   manage_default_network_acl = true
-  default_network_acl_tags   = { Name = "${local.vpc_name}-default" }
+  default_network_acl_tags   = { Name = "${local.cluster_name}-default" }
 
   manage_default_route_table = true
-  default_route_table_tags   = { Name = "${local.vpc_name}-default" }
+  default_route_table_tags   = { Name = "${local.cluster_name}-default" }
 
   manage_default_security_group = true
-  default_security_group_tags   = { Name = "${local.vpc_name}-default" }
+  default_security_group_tags   = { Name = "${local.cluster_name}-default" }
 
   enable_dns_support = true
 
@@ -116,7 +116,7 @@ module "vpc_endpoint_security_group" {
   source  = "terraform-aws-modules/security-group/aws"
   version = "~> 4.0"
 
-  name        = join("-", compact(["${local.vpc_name}-k8s-endpoints"]))
+  name        = join("-", compact(["${local.cluster_name}-k8s-endpoints"]))
   description = "Security group for VPC endpoints"
   vpc_id      = module.vpc.vpc_id
 
