@@ -1,4 +1,7 @@
-
+#  sources to understand code:
+#
+#  vpc endpoints:
+#  
 
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
