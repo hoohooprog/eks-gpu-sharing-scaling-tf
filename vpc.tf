@@ -1,7 +1,8 @@
-#  sources to understand code:
+#	sources to understand code:
 #
-#  vpc endpoints:
-#  
+#	vpc endpoints:
+#	https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html
+#	
 
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
